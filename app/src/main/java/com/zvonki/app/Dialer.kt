@@ -67,6 +67,7 @@ object Dialer {
         val uri = Uri.parse("tel:" + Uri.encode(number))
         val action = if (has(ctx, Manifest.permission.CALL_PHONE)) Intent.ACTION_CALL else Intent.ACTION_DIAL
         ctx.startActivity(Intent(action, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        ctx.startActivity(Intent(ctx, InCallActivity::class.java).putExtra("number", number).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     fun typeName(t: Int) = when (t) {

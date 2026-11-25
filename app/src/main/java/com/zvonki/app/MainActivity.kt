@@ -13,6 +13,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 
 // Экран звонков: контакты, история и набор номера. Всё в тёплом стиле приложения
 class MainActivity : Activity() {
@@ -42,12 +43,27 @@ class MainActivity : Activity() {
         }
         setContentView(root)
 
-        root.addView(TextView(this).apply {
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        header.addView(TextView(this).apply {
             text = "Звонки"
             setTextColor(Color.WHITE)
             textSize = 24f
             typeface = Ui.font(this@MainActivity)
-            setPadding(dp(4), 0, 0, dp(12))
+            setPadding(dp(4), 0, 0, 0)
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        header.addView(android.widget.ImageButton(this).apply {
+            setImageResource(R.drawable.ic_tune)
+            setColorFilter(Color.WHITE)
+            background = rounded(0x662A1E16, 22, 0x40F2D7B8)
+            contentDescription = "Настройки"
+            setPadding(dp(11), dp(11), dp(11), dp(11))
+            setOnClickListener { showSettings() }
+        }, LinearLayout.LayoutParams(dp(44), dp(44)))
+        root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(12)
         })
 
         tabsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -100,7 +116,23 @@ class MainActivity : Activity() {
             .filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
         if (need.isNotEmpty()) requestPermissions(need.toTypedArray(), 201)
 
-        setMode("contacts")
+        setMode(if (prefs().getBoolean("history_first", false)) "history" else "contacts")
+        Updates.check(this, false)
+    }
+
+    private fun prefs() = getSharedPreferences("zvonki", MODE_PRIVATE)
+
+    private fun showSettings() {
+        val p = prefs()
+        val histFirst = p.getBoolean("history_first", false)
+        Glass.show(this, "Настройки", listOf(
+            Glass.Row(R.drawable.ic_folder, "Сначала история", if (histFirst) "Включено" else "Выключено") {
+                p.edit().putBoolean("history_first", !histFirst).apply()
+                Toast.makeText(this, "Сохранено", Toast.LENGTH_SHORT).show()
+            },
+            Glass.Row(R.drawable.ic_refresh, "Проверить обновления", "Скачать новую версию") { Updates.check(this, true) },
+            Glass.Row(R.drawable.ic_star, "Версия", Updates.versionName(this)) {}
+        ))
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
