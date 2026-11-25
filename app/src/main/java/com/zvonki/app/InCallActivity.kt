@@ -86,8 +86,12 @@ class InCallActivity : Activity() {
         row.addView(muteBtn, LinearLayout.LayoutParams(0, dp(96), 1f).apply { setMargins(dp(6), dp(40), dp(6), 0) })
         root.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        val end = button("Свернуть панель") { finish() }
-        root.addView(end, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)).apply { setMargins(0, dp(40), 0, 0) })
+        val hang = button("Завершить звонок") { endCall() }
+        hang.background = rounded(0xFFB3261E.toInt(), 20)
+        root.addView(hang, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)).apply { setMargins(0, dp(40), 0, 0) })
+
+        val hide = button("Свернуть панель") { finish() }
+        root.addView(hide, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)).apply { setMargins(0, dp(12), 0, 0) })
 
         setContentView(root)
         refresh()
@@ -101,6 +105,27 @@ class InCallActivity : Activity() {
         textSize = 15f
         background = rounded(0x662A1E16, 20)
         setOnClickListener { onTap() }
+    }
+
+    // Завершение звонка: нужно разрешение «отвечать на звонки», Android спросит его один раз
+    private fun endCall() {
+        if (checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.ANSWER_PHONE_CALLS), 202)
+            return
+        }
+        try {
+            val tm = getSystemService(Context.TELECOM_SERVICE) as android.telecom.TelecomManager
+            @Suppress("DEPRECATION")
+            val ended = tm.endCall()
+            if (ended) finish() else Toast.makeText(this, "Звонок не завершился, заверши кнопкой на телефоне", Toast.LENGTH_LONG).show()
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Нет разрешения, заверши кнопкой на телефоне", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 202 && grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) endCall()
     }
 
     private fun refresh() {
